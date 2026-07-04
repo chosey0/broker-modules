@@ -1,0 +1,1 @@
+"""Private Kiwoom SDK internals."""
