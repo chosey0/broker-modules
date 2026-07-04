@@ -6,17 +6,17 @@ Pure Python broker SDK collection used by FinLabs and other internal projects.
 
 ```toml
 [project]
-dependencies = ["finlabs-brokers"]
+dependencies = ["broker-modules"]
 
 [tool.uv.sources]
-finlabs-brokers = { git = "https://github.com/chosey0/broker-modules.git" }
+broker-modules = { git = "https://github.com/chosey0/broker-modules.git" }
 ```
 
 For local development next to the FinLabs repository:
 
 ```toml
 [tool.uv.sources]
-finlabs-brokers = { path = "../broker-modules", editable = true }
+broker-modules = { path = "../broker-modules", editable = true }
 ```
 
 ## Import

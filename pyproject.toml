@@ -1,5 +1,5 @@
 [project]
-name = "finlabs-brokers"
+name = "broker-modules"
 version = "0.1.0"
 description = "Pure Python broker SDK collection for FinLabs"
 requires-python = ">=3.12"
