@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from brokers.kis.models.ohlcv import DomesticMinuteBar, OhlcvBar, OverseasMinuteBar
+from brokers.kis.models.ohlcv import (
+    DomesticMinuteBar,
+    OhlcvBar,
+    OverseasIndexMinuteBar,
+    OverseasMinuteBar,
+)
 from brokers.kis.models.orderbook import OrderBookLevel, OrderBookSnapshot
 from brokers.kis.models.quote import CurrentPrice
 from brokers.kis.models.reference import OverseasVolumeSurgeItem
@@ -15,6 +20,7 @@ __all__ = [
     "OhlcvBar",
     "OrderBookLevel",
     "OrderBookSnapshot",
+    "OverseasIndexMinuteBar",
     "OverseasMinuteBar",
     "OverseasVolumeSurgeItem",
     "RealtimeTick",

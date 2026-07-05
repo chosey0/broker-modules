@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from brokers.kis._internal.headers import build_rest_headers
-from brokers.kis._internal.http import AsyncHttpTransport
+from brokers.kis._internal.http import AsyncHttpTransport, HttpResponse
 from brokers.kis.auth.cache import MemoryTokenCache, TokenCache
 from brokers.kis.auth.manager import TokenProvider
 from brokers.kis.config import Credentials, rest_base_url
@@ -129,6 +129,25 @@ class KisClient:
         the parsed JSON payload; callers feed it into the appropriate parser
         in `kis.parsers.rest`.
         """
+        response = await self.request_response(
+            spec,
+            params=params,
+            json_body=json_body,
+            tr_cont=tr_cont,
+            custtype=custtype,
+        )
+        return response.payload
+
+    async def request_response(
+        self,
+        spec: EndpointSpec,
+        *,
+        params: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+        tr_cont: str = "",
+        custtype: str = "P",
+    ) -> HttpResponse:
+        """Execute one REST call and return payload plus response headers."""
         if self._transport is None:
             raise RuntimeError(
                 "KisClient must be used as an async context manager: "
@@ -148,7 +167,7 @@ class KisClient:
             params=params,
             json_body=json_body,
         )
-        return response.payload
+        return response
 
     async def ensure_token(self) -> str:
         """Return a valid REST access token, fetching one if needed."""

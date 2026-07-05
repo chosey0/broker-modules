@@ -73,3 +73,19 @@ class OverseasMinuteBar:
     volume: int
     amount: Decimal
     raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class OverseasIndexMinuteBar:
+    """One minute bar for an overseas index."""
+
+    market: str
+    symbol: str
+    business_date: str
+    time: str
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: int
+    raw: dict[str, Any] = field(default_factory=dict)

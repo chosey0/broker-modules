@@ -21,7 +21,7 @@ CHART_OHLCV = register(
         method="GET",
         path="/uapi/overseas-price/v1/quotations/inquire-daily-chartprice",
         tr_id_real="FHKST03030100",
-        tr_id_mock=None,
+        tr_id_mock="FHKST03030100",
         required_params=(
             "FID_COND_MRKT_DIV_CODE",
             "FID_INPUT_ISCD",
@@ -61,6 +61,23 @@ CHART_MINUTE = register(
             "NREC",
             "FILL",
             "KEYB",
+        ),
+        supports_tr_cont=True,
+    )
+)
+
+CHART_INDEX_MINUTE = register(
+    EndpointSpec(
+        name="overseas.chart.index_minute",
+        method="GET",
+        path="/uapi/overseas-price/v1/quotations/inquire-time-indexchartprice",
+        tr_id_real="FHKST03030200",
+        tr_id_mock="FHKST03030200",
+        required_params=(
+            "FID_COND_MRKT_DIV_CODE",
+            "FID_INPUT_ISCD",
+            "FID_HOUR_CLS_CODE",
+            "FID_PW_DATA_INCU_YN",
         ),
         supports_tr_cont=True,
     )
