@@ -314,19 +314,18 @@ def parse_overseas_index_info(zip_bytes: bytes) -> list[OverseasIndexInfo]:
     """Parse KIS ``frgn_code.mst.zip`` bytes into overseas index records."""
     with zipfile.ZipFile(BytesIO(zip_bytes)) as archive:
         member = _find_member(archive, OVERSEAS_INDEX_FILE_NAME)
-        content = archive.read(member)
+        content = archive.read(member).decode("cp949")
 
     records: list[OverseasIndexInfo] = []
-    row_width = sum(OVERSEAS_INDEX_WIDTHS)
-    for line_number, row in enumerate(content.splitlines(), start=1):
-        if not row.strip():
+    for line_number, line in enumerate(content.splitlines(), start=1):
+        if not line.strip():
             continue
-        if len(row) < row_width:
+        if len(line) < 26:
             raise ValueError(
                 f"invalid overseas index info row {line_number}: "
-                f"expected at least {row_width} bytes, got {len(row)}"
+                f"expected at least 26 characters, got {len(line)}"
             )
-        raw = _parse_overseas_index_row(row[:row_width])
+        raw = _parse_overseas_index_row(line)
         records.append(
             OverseasIndexInfo(
                 class_code=raw["class_code"],
@@ -432,16 +431,56 @@ def parse_overseas_master(market: str, content: str) -> list[SymbolRecord]:
     return records
 
 
-def _parse_overseas_index_row(row: bytes) -> dict[str, str]:
-    raw: dict[str, str] = {}
-    offset = 0
-    for column, width in zip(
-        OVERSEAS_INDEX_COLUMNS, OVERSEAS_INDEX_WIDTHS, strict=True
-    ):
-        value = row[offset : offset + width].decode("cp949").strip()
-        raw[column] = value
-        offset += width
-    return raw
+def _parse_overseas_index_row(line: str) -> dict[str, str]:
+    stripped_line = line.rstrip()
+    if len(stripped_line) < 6:
+        raise ValueError("invalid overseas index info row: missing exchange/country")
+    if stripped_line[-3:].isdigit():
+        country_code = stripped_line[-3:]
+        exchange_code = stripped_line[-7:-3].strip()
+        body = stripped_line[:-7]
+    else:
+        country_code = stripped_line[-2:]
+        exchange_code = stripped_line[-6:-2].strip()
+        body = stripped_line[:-6]
+    if not exchange_code or not country_code:
+        raise ValueError("invalid overseas index info row: missing exchange/country")
+
+    body_without_flags = body.rstrip()
+    flag_text = body_without_flags[-3:]
+    if len(flag_text) == 3 and all(value in {"0", "1"} for value in flag_text):
+        dow30, nasdaq100, sp500 = flag_text
+        body_without_flags = body_without_flags[:-3]
+    else:
+        dow30 = nasdaq100 = sp500 = ""
+
+    industry_field = body_without_flags[-4:]
+    industry_code = industry_field.strip()
+    if industry_code and not all("A" <= value <= "Z" for value in industry_code):
+        industry_code = ""
+    if industry_code:
+        body_without_flags = body_without_flags[:-4]
+
+    class_code = line[0:1].strip()
+    if class_code == "X":
+        english_name = body_without_flags[11:40].strip()
+        korean_name = body_without_flags[40:].strip()
+    else:
+        english_name = body_without_flags[11:50].strip()
+        korean_name = body_without_flags[50:].strip()
+
+    return {
+        "class_code": class_code,
+        "symbol": line[1:11].strip(),
+        "english_name": english_name,
+        "korean_name": korean_name,
+        "industry_code": industry_code,
+        "dow30": dow30,
+        "nasdaq100": nasdaq100,
+        "sp500": sp500,
+        "exchange_code": exchange_code,
+        "country_code": country_code,
+    }
 
 
 def _master_url(market: str) -> str:

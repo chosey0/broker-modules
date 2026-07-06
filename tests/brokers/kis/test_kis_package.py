@@ -178,6 +178,10 @@ def test_kis_overseas_index_info_parser_handles_cp949_fixed_width_zip() -> None:
                         exchange_code="NYSE",
                         country_code="840",
                     ),
+                    (
+                        "HHK:2951   JIYIHOUSE RTS                          "
+                        "집일하우스홀드인터내셔널홀딩스 - 신주인수권    SEHKHK "
+                    ).encode("cp949"),
                 ]
             ),
         )
@@ -185,7 +189,7 @@ def test_kis_overseas_index_info_parser_handles_cp949_fixed_width_zip() -> None:
     records = parse_overseas_index_info(zip_bytes.getvalue())
 
     assert kis.OverseasIndexInfo is type(records[0])
-    assert len(records) == 2
+    assert len(records) == 3
     assert records[0].symbol == "US#SPX"
     assert records[0].korean_name == "미국 S&P 500"
     assert records[0].industry_code == "SPX"
@@ -194,6 +198,10 @@ def test_kis_overseas_index_info_parser_handles_cp949_fixed_width_zip() -> None:
     assert records[0].exchange_code == "NYSE"
     assert records[0].country_code == "840"
     assert records[1].is_dow30 is True
+    assert records[2].symbol == "HK:2951"
+    assert records[2].korean_name == "집일하우스홀드인터내셔널홀딩스 - 신주인수권"
+    assert records[2].exchange_code == "SEHK"
+    assert records[2].country_code == "HK"
 
 
 def _overseas_index_row(
