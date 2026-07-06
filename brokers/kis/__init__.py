@@ -64,6 +64,7 @@ from brokers.kis.symbols import (
     download_overseas_index_info,
     download_symbol_master,
     normalize_market,
+    overseas_index_info_to_dataframe,
     parse_overseas_index_info,
     parse_symbol_master,
 )
@@ -116,6 +117,7 @@ __all__ = [
     "mask_sensitive_message",
     "names",
     "normalize_market",
+    "overseas_index_info_to_dataframe",
     "parse_orderbook_payload",
     "parse_domestic_minute_bar",
     "parse_minute_datetime",

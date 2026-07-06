@@ -148,6 +148,45 @@ def test_kis_symbol_master_parser_handles_overseas_zip() -> None:
 
 
 def test_kis_overseas_index_info_parser_handles_cp949_fixed_width_zip() -> None:
+    records = parse_overseas_index_info(_overseas_index_zip_bytes())
+
+    assert kis.OverseasIndexInfo is type(records[0])
+    assert len(records) == 3
+    assert records[0].symbol == "US#SPX"
+    assert records[0].korean_name == "미국 S&P 500"
+    assert records[0].industry_code == "SPX"
+    assert records[0].is_sp500 is True
+    assert records[0].is_dow30 is False
+    assert records[0].exchange_code == "NYSE"
+    assert records[0].country_code == "840"
+    assert records[1].is_dow30 is True
+    assert records[2].symbol == "HK:2951"
+    assert records[2].korean_name == "집일하우스홀드인터내셔널홀딩스 - 신주인수권"
+    assert records[2].exchange_code == "SEHK"
+    assert records[2].country_code == "HK"
+
+
+def test_kis_overseas_index_info_download_can_return_dataframe_or_records(
+    monkeypatch,
+) -> None:
+    payload = _overseas_index_zip_bytes()
+    monkeypatch.setattr(kis.symbols, "_download_zip", lambda *args, **kwargs: payload)
+
+    dataframe = kis.download_overseas_index_info(downloaded_at="stamp")
+    records = kis.download_overseas_index_info(
+        as_dataframe=False,
+        downloaded_at="stamp",
+    )
+
+    assert dataframe.shape[0] == 3
+    assert dataframe.loc[0, "symbol"] == "US#SPX"
+    assert bool(dataframe.loc[0, "is_sp500"]) is True
+    assert dataframe.loc[0, "downloaded_at"] == "stamp"
+    assert isinstance(records[0], kis.OverseasIndexInfo)
+    assert records[0].downloaded_at == "stamp"
+
+
+def _overseas_index_zip_bytes() -> bytes:
     zip_bytes = BytesIO()
     with zipfile.ZipFile(zip_bytes, "w") as archive:
         archive.writestr(
@@ -185,23 +224,7 @@ def test_kis_overseas_index_info_parser_handles_cp949_fixed_width_zip() -> None:
                 ]
             ),
         )
-
-    records = parse_overseas_index_info(zip_bytes.getvalue())
-
-    assert kis.OverseasIndexInfo is type(records[0])
-    assert len(records) == 3
-    assert records[0].symbol == "US#SPX"
-    assert records[0].korean_name == "미국 S&P 500"
-    assert records[0].industry_code == "SPX"
-    assert records[0].is_sp500 is True
-    assert records[0].is_dow30 is False
-    assert records[0].exchange_code == "NYSE"
-    assert records[0].country_code == "840"
-    assert records[1].is_dow30 is True
-    assert records[2].symbol == "HK:2951"
-    assert records[2].korean_name == "집일하우스홀드인터내셔널홀딩스 - 신주인수권"
-    assert records[2].exchange_code == "SEHK"
-    assert records[2].country_code == "HK"
+    return zip_bytes.getvalue()
 
 
 def _overseas_index_row(

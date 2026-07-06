@@ -3,7 +3,11 @@ name = "broker-modules"
 version = "0.1.0"
 description = "Pure Python broker SDK collection for FinLabs"
 requires-python = ">=3.12"
-dependencies = ["httpx>=0.27.0", "websockets>=13.0"]
+dependencies = [
+    "httpx>=0.27.0",
+    "pandas>=3.0.3",
+    "websockets>=13.0",
+]
 
 [dependency-groups]
 dev = ["pytest>=9.0.3", "ruff>=0.15.12"]

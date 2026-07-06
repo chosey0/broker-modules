@@ -221,11 +221,12 @@ from brokers.kis import download_overseas_index_info, download_symbol_master
 
 records = download_symbol_master("NASDAQ")
 indices = download_overseas_index_info()
+index_records = download_overseas_index_info(as_dataframe=False)
 ```
 
 지원 시장은 `NASDAQ`, `NYSE`, `AMEX`, `SHANGHAI`, `SHANGHAI_INDEX`, `SHENZHEN`, `SHENZHEN_INDEX`, `TOKYO`, `HONGKONG`, `HANOI`, `HOCHIMINH`입니다.
 
-`download_overseas_index_info()`는 KIS `frgn_code.mst.zip` 파일을 내려받아 해외주식지수정보(`class_code`, `symbol`, `english_name`, `korean_name`, 거래소/국가 코드, 다우30·나스닥100·S&P500 편입 여부)를 반환합니다.
+`download_overseas_index_info()`는 KIS `frgn_code.mst.zip` 파일을 내려받아 해외주식지수정보(`class_code`, `symbol`, `english_name`, `korean_name`, 거래소/국가 코드, 다우30·나스닥100·S&P500 편입 여부)를 pandas DataFrame으로 반환합니다. `as_dataframe=False`를 넘기면 `list[OverseasIndexInfo]`를 반환합니다.
 
 ---
 

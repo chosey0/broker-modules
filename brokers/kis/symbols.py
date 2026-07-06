@@ -12,10 +12,14 @@ import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from io import BytesIO, StringIO
+from typing import TYPE_CHECKING
 
 import httpx
 
 from brokers.kis.models.symbol import OverseasIndexInfo, SymbolRecord
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 OVERSEAS_MARKET_CODES = {
     "NASDAQ": "nas",
@@ -281,14 +285,17 @@ def download_symbol_master(
 
 def download_overseas_index_info(
     *,
+    as_dataframe: bool = True,
     downloaded_at: str | None = None,
     timeout_seconds: float = 30.0,
-) -> list[OverseasIndexInfo]:
+) -> "pd.DataFrame | list[OverseasIndexInfo]":
     """Download and parse KIS overseas stock index information.
 
     The upstream file is ``frgn_code.mst.zip`` from KIS' static master-file
     endpoint. It contains index, exchange-rate, futures, commodity, and rate
     rows described by ``stocks_info/해외주식지수정보.h`` in the KIS sample repo.
+    By default this returns a pandas DataFrame; pass ``as_dataframe=False`` to
+    receive ``list[OverseasIndexInfo]``.
     """
     data = _download_zip(
         f"{MASTER_BASE_URL}/{OVERSEAS_INDEX_FILE_NAME}.zip",
@@ -296,7 +303,37 @@ def download_overseas_index_info(
     )
     records = parse_overseas_index_info(data)
     stamp = downloaded_at or datetime.now(UTC).isoformat()
-    return [record.with_downloaded_at(stamp) for record in records]
+    stamped = [record.with_downloaded_at(stamp) for record in records]
+    if as_dataframe:
+        return overseas_index_info_to_dataframe(stamped)
+    return stamped
+
+
+def overseas_index_info_to_dataframe(
+    records: list[OverseasIndexInfo],
+) -> "pd.DataFrame":
+    """Convert overseas index info records to a pandas DataFrame."""
+    import pandas as pd
+
+    return pd.DataFrame(
+        [
+            {
+                "class_code": record.class_code,
+                "symbol": record.symbol,
+                "english_name": record.english_name,
+                "korean_name": record.korean_name,
+                "industry_code": record.industry_code,
+                "is_dow30": record.is_dow30,
+                "is_nasdaq100": record.is_nasdaq100,
+                "is_sp500": record.is_sp500,
+                "exchange_code": record.exchange_code,
+                "country_code": record.country_code,
+                "raw_source": record.raw_source,
+                "downloaded_at": record.downloaded_at,
+            }
+            for record in records
+        ]
+    )
 
 
 def parse_symbol_master(market: str, zip_bytes: bytes) -> list[SymbolRecord]:
