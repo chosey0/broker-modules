@@ -11,6 +11,7 @@ from brokers.kis import (
     KisClient,
     KisConfigError,
     MockNotSupportedError,
+    parse_overseas_index_info,
     parse_overseas_minute_bar,
 )
 from brokers.kis.auth import IssuedToken, parse_token_response
@@ -144,3 +145,87 @@ def test_kis_symbol_master_parser_handles_overseas_zip() -> None:
     assert records[0].symbol == "AAPL"
     assert records[0].english_name == "Apple Inc"
     assert records[0].currency == "USD"
+
+
+def test_kis_overseas_index_info_parser_handles_cp949_fixed_width_zip() -> None:
+    zip_bytes = BytesIO()
+    with zipfile.ZipFile(zip_bytes, "w") as archive:
+        archive.writestr(
+            "frgn_code.mst",
+            b"\n".join(
+                [
+                    _overseas_index_row(
+                        class_code="W",
+                        symbol="US#SPX",
+                        english_name="S&P 500 INDEX",
+                        korean_name="미국 S&P 500",
+                        industry_code="SPX",
+                        dow30="0",
+                        nasdaq100="0",
+                        sp500="1",
+                        exchange_code="NYSE",
+                        country_code="840",
+                    ),
+                    _overseas_index_row(
+                        class_code="P",
+                        symbol="US#DJI",
+                        english_name="Dow Jones Industrial Average",
+                        korean_name="다우존스 산업지수",
+                        industry_code="DOW",
+                        dow30="1",
+                        nasdaq100="0",
+                        sp500="0",
+                        exchange_code="NYSE",
+                        country_code="840",
+                    ),
+                ]
+            ),
+        )
+
+    records = parse_overseas_index_info(zip_bytes.getvalue())
+
+    assert kis.OverseasIndexInfo is type(records[0])
+    assert len(records) == 2
+    assert records[0].symbol == "US#SPX"
+    assert records[0].korean_name == "미국 S&P 500"
+    assert records[0].industry_code == "SPX"
+    assert records[0].is_sp500 is True
+    assert records[0].is_dow30 is False
+    assert records[0].exchange_code == "NYSE"
+    assert records[0].country_code == "840"
+    assert records[1].is_dow30 is True
+
+
+def _overseas_index_row(
+    *,
+    class_code: str,
+    symbol: str,
+    english_name: str,
+    korean_name: str,
+    industry_code: str,
+    dow30: str,
+    nasdaq100: str,
+    sp500: str,
+    exchange_code: str,
+    country_code: str,
+) -> bytes:
+    values = (
+        (class_code, 1),
+        (symbol, 10),
+        (english_name, 39),
+        (korean_name, 40),
+        (industry_code, 4),
+        (dow30, 1),
+        (nasdaq100, 1),
+        (sp500, 1),
+        (exchange_code, 4),
+        (country_code, 3),
+    )
+    return b"".join(_cp949_field(value, width) for value, width in values)
+
+
+def _cp949_field(value: str, width: int) -> bytes:
+    encoded = value.encode("cp949")
+    if len(encoded) > width:
+        raise ValueError(f"{value!r} exceeds {width} cp949 bytes")
+    return encoded + (b" " * (width - len(encoded)))

@@ -11,7 +11,7 @@ from brokers.kis.models.ohlcv import (
 from brokers.kis.models.orderbook import OrderBookLevel, OrderBookSnapshot
 from brokers.kis.models.quote import CurrentPrice
 from brokers.kis.models.reference import OverseasVolumeSurgeItem
-from brokers.kis.models.symbol import SymbolRecord
+from brokers.kis.models.symbol import OverseasIndexInfo, SymbolRecord
 from brokers.kis.models.tick import RealtimeTick
 
 __all__ = [
@@ -24,5 +24,6 @@ __all__ = [
     "OverseasMinuteBar",
     "OverseasVolumeSurgeItem",
     "RealtimeTick",
+    "OverseasIndexInfo",
     "SymbolRecord",
 ]

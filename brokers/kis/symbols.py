@@ -15,7 +15,7 @@ from io import BytesIO, StringIO
 
 import httpx
 
-from brokers.kis.models.symbol import SymbolRecord
+from brokers.kis.models.symbol import OverseasIndexInfo, SymbolRecord
 
 OVERSEAS_MARKET_CODES = {
     "NASDAQ": "nas",
@@ -38,6 +38,20 @@ SUPPORTED_SYMBOL_MARKETS = set(DOMESTIC_MARKET_FILES) | set(OVERSEAS_MARKET_CODE
 ALL_SYMBOL_MARKETS = (*DOMESTIC_MARKET_FILES, *OVERSEAS_MARKET_CODES)
 
 MASTER_BASE_URL = "https://new.real.download.dws.co.kr/common/master"
+OVERSEAS_INDEX_FILE_NAME = "frgn_code.mst"
+OVERSEAS_INDEX_WIDTHS = (1, 10, 39, 40, 4, 1, 1, 1, 4, 3)
+OVERSEAS_INDEX_COLUMNS = (
+    "class_code",
+    "symbol",
+    "english_name",
+    "korean_name",
+    "industry_code",
+    "dow30",
+    "nasdaq100",
+    "sp500",
+    "exchange_code",
+    "country_code",
+)
 OVERSEAS_COLUMNS = [
     "national_code",
     "exchange_id",
@@ -265,6 +279,26 @@ def download_symbol_master(
     return [record.with_downloaded_at(stamp) for record in records]
 
 
+def download_overseas_index_info(
+    *,
+    downloaded_at: str | None = None,
+    timeout_seconds: float = 30.0,
+) -> list[OverseasIndexInfo]:
+    """Download and parse KIS overseas stock index information.
+
+    The upstream file is ``frgn_code.mst.zip`` from KIS' static master-file
+    endpoint. It contains index, exchange-rate, futures, commodity, and rate
+    rows described by ``stocks_info/해외주식지수정보.h`` in the KIS sample repo.
+    """
+    data = _download_zip(
+        f"{MASTER_BASE_URL}/{OVERSEAS_INDEX_FILE_NAME}.zip",
+        timeout_seconds=timeout_seconds,
+    )
+    records = parse_overseas_index_info(data)
+    stamp = downloaded_at or datetime.now(UTC).isoformat()
+    return [record.with_downloaded_at(stamp) for record in records]
+
+
 def parse_symbol_master(market: str, zip_bytes: bytes) -> list[SymbolRecord]:
     normalized = normalize_market(market)
     with zipfile.ZipFile(BytesIO(zip_bytes)) as archive:
@@ -274,6 +308,42 @@ def parse_symbol_master(market: str, zip_bytes: bytes) -> list[SymbolRecord]:
     if normalized in DOMESTIC_MASTER_SPECS:
         return parse_domestic_master(normalized, content)
     return parse_overseas_master(normalized, content)
+
+
+def parse_overseas_index_info(zip_bytes: bytes) -> list[OverseasIndexInfo]:
+    """Parse KIS ``frgn_code.mst.zip`` bytes into overseas index records."""
+    with zipfile.ZipFile(BytesIO(zip_bytes)) as archive:
+        member = _find_member(archive, OVERSEAS_INDEX_FILE_NAME)
+        content = archive.read(member)
+
+    records: list[OverseasIndexInfo] = []
+    row_width = sum(OVERSEAS_INDEX_WIDTHS)
+    for line_number, row in enumerate(content.splitlines(), start=1):
+        if not row.strip():
+            continue
+        if len(row) < row_width:
+            raise ValueError(
+                f"invalid overseas index info row {line_number}: "
+                f"expected at least {row_width} bytes, got {len(row)}"
+            )
+        raw = _parse_overseas_index_row(row[:row_width])
+        records.append(
+            OverseasIndexInfo(
+                class_code=raw["class_code"],
+                symbol=raw["symbol"],
+                english_name=raw["english_name"],
+                korean_name=raw["korean_name"],
+                industry_code=raw["industry_code"],
+                is_dow30=raw["dow30"] == "1",
+                is_nasdaq100=raw["nasdaq100"] == "1",
+                is_sp500=raw["sp500"] == "1",
+                exchange_code=raw["exchange_code"],
+                country_code=raw["country_code"],
+                raw_source=OVERSEAS_INDEX_FILE_NAME,
+                raw=raw,
+            )
+        )
+    return records
 
 
 def parse_domestic_master(market: str, content: str) -> list[SymbolRecord]:
@@ -360,6 +430,18 @@ def parse_overseas_master(market: str, content: str) -> list[SymbolRecord]:
         )
 
     return records
+
+
+def _parse_overseas_index_row(row: bytes) -> dict[str, str]:
+    raw: dict[str, str] = {}
+    offset = 0
+    for column, width in zip(
+        OVERSEAS_INDEX_COLUMNS, OVERSEAS_INDEX_WIDTHS, strict=True
+    ):
+        value = row[offset : offset + width].decode("cp949").strip()
+        raw[column] = value
+        offset += width
+    return raw
 
 
 def _master_url(market: str) -> str:
