@@ -179,6 +179,7 @@ async def main() -> None:
         async with client.realtime.session() as ws:
             await ws.subscribe_trades("005930")
             await ws.subscribe_orderbook("005930")
+            await ws.subscribe_industry_index("001")
 
             async for event in ws.stream():
                 print(event)
@@ -193,11 +194,18 @@ asyncio.run(main())
 |--------|--------|-----------|
 | `subscribe_trades("005930")` | `0B` | `RealtimeTick` |
 | `subscribe_orderbook("005930")` | `0D` | `OrderBookSnapshot` |
+| `subscribe_industry_index("001")` | `0J` | `RealtimeIndustryIndex` |
 
 WebSocket 로그인은 REST 접근토큰으로 수행합니다. 서버가 `PING` 프레임을
 보내면 SDK가 동일 payload를 즉시 echo합니다. 실시간 이벤트 모델은
 거래소 시각(`exchange_ts`), 수신 시각(`received_at`), 수신 순번
 (`received_seq`)과 원문 `values`를 함께 보존합니다.
+
+동일한 `received_at`을 가진 이벤트의 로컬 수신 순서는 `received_seq`로
+보존합니다. 저장소나 전략 엔진에서 재생 순서를 고정해야 하면
+`(received_at, received_seq)`를 tie-breaker로 사용하세요. 이 값은 단일
+WebSocket 세션의 클라이언트 수신 순서이며, 재접속 전후나 여러 수집기 간
+전역 발생 순서를 의미하지 않습니다.
 
 ---
 

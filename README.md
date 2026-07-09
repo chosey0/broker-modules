@@ -33,7 +33,7 @@
 | | 영역 | 상태 | 설명 |
 |---|------|:----:|------|
 | **[KIS]** | [KIS SDK](./brokers/kis/README.md) | 구현 중 | 한국투자증권 국내·해외 REST 조회, 해외·국내 WebSocket 실시간 시세, 인증, 심볼 마스터 |
-| **[Kiwoom]** | [Kiwoom SDK](./brokers/kiwoom/README.md) | 구현 중 | 키움증권 OAuth, 국내주식 차트, 업종 코드·지수, 국내 실시간 체결·호가 WebSocket |
+| **[Kiwoom]** | [Kiwoom SDK](./brokers/kiwoom/README.md) | 구현 중 | 키움증권 OAuth, 국내주식 차트, 업종 코드·지수, 국내 실시간 체결·호가·업종지수 WebSocket |
 | **[Toss]** | [Toss SDK](./brokers/toss/README.md) | 구현됨 | 토스증권 현재가·캔들·종목정보와 국내·해외 장 운영 정보 조회 |
 | **[KRX]** | [KRX SDK](./brokers/krx/README.md) | 초기 구현 | KRX Data Marketplace 지수 일별 가격 조회 |
 
@@ -49,6 +49,18 @@
 | **[Models]** | broker-native dataclass | SDK 응답을 저장소나 canonical 모델에 묶지 않는 순수 모델 |
 | **[Parsers]** | 응답 정규화 | 문자열 숫자, 날짜, 시간, continuation 응답 파싱 |
 | **[Isolation]** | FinLabs 비의존 | DuckDB, CLI, adapters, orchestration, domain 계층을 import하지 않음 |
+
+### Realtime Ordering Contract
+
+WebSocket 실시간 이벤트는 `received_at`과 `received_seq`를 함께 제공합니다.
+`received_at`은 SDK가 프레임을 파싱한 수신 시각이고, `received_seq`는 단일
+WebSocket 세션 안에서 SDK가 부여하는 단조 증가 순번입니다. 같은
+`received_at`을 가진 이벤트를 저장하거나 재생할 때는
+`(received_at, received_seq)`로 정렬해야 로컬 수신 순서가 보존됩니다.
+
+이 순번은 로컬 수신 순서용 tie-breaker입니다. 여러 WebSocket 연결, 재접속
+전후, 별도 프로세스 수집 간 전역 순서나 거래소의 절대 발생 순서를 보장하지는
+않습니다.
 
 ---
 

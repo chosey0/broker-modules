@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from brokers.kiwoom.models.industry import RealtimeIndustryIndex
 from brokers.kiwoom.models.orderbook import OrderBookSnapshot
 from brokers.kiwoom.models.tick import RealtimeTick
 from brokers.kiwoom.parsers.realtime import parse_realtime_message
 from brokers.kiwoom.realtime.subscription import SubscriptionRegistry
 
-RealtimeEvent = RealtimeTick | OrderBookSnapshot
+RealtimeEvent = RealtimeTick | OrderBookSnapshot | RealtimeIndustryIndex
 
 
 def is_ping_frame(frame: str) -> bool:

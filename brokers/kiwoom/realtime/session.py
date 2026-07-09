@@ -77,6 +77,16 @@ class RealtimeSession:
     ) -> RealtimeSubscription:
         return await self._subscribe(subscription_for("orderbook", symbol, market=market))
 
+    async def subscribe_industry_index(
+        self,
+        industry_code: str,
+        *,
+        market: str = "KRX",
+    ) -> RealtimeSubscription:
+        return await self._subscribe(
+            subscription_for("industry_index", industry_code, market=market)
+        )
+
     async def unsubscribe(
         self,
         subscription_or_symbol: RealtimeSubscription | str,

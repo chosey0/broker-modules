@@ -6,10 +6,11 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from brokers.kiwoom.exceptions import KiwoomRealtimeError
+from brokers.kiwoom.models.industry import RealtimeIndustryIndex
 from brokers.kiwoom.models.orderbook import OrderBookLevel, OrderBookSnapshot
 from brokers.kiwoom.models.tick import RealtimeTick
 
-RealtimeEvent = RealtimeTick | OrderBookSnapshot
+RealtimeEvent = RealtimeTick | OrderBookSnapshot | RealtimeIndustryIndex
 
 
 def parse_realtime_message(
@@ -48,6 +49,16 @@ def parse_realtime_message(
         elif tr_id == "0D":
             events.append(
                 _parse_orderbook(
+                    row=row,
+                    values=values,
+                    market=market,
+                    received_at=timestamp,
+                    received_seq=seq,
+                )
+            )
+        elif tr_id == "0J":
+            events.append(
+                _parse_industry_index(
                     row=row,
                     values=values,
                     market=market,
@@ -130,6 +141,39 @@ def _parse_orderbook(
         total_bid_change=_int(values.get("126")),
         expected_price=_price(values.get("23")),
         expected_volume=_abs_int(values.get("24")),
+        raw=values,
+    )
+
+
+def _parse_industry_index(
+    *,
+    row: dict[str, Any],
+    values: dict[str, str],
+    market: str,
+    received_at: str,
+    received_seq: int,
+) -> RealtimeIndustryIndex:
+    industry_code = _text(row.get("item"))
+    return RealtimeIndustryIndex(
+        market=market,
+        industry_code=industry_code,
+        tr_id="0J",
+        tr_key=industry_code,
+        exchange_ts=_time_value(values.get("20")),
+        received_at=received_at,
+        received_seq=received_seq,
+        seq=received_seq,
+        current_price=_price(values.get("10")),
+        volume=_abs_int(values.get("15")),
+        change=_decimal(values.get("11")),
+        change_rate=_decimal(values.get("12")),
+        total_volume=_abs_int(values.get("13")),
+        amount_million=_abs_int(values.get("14")),
+        open=_price(values.get("16")),
+        high=_price(values.get("17")),
+        low=_price(values.get("18")),
+        change_signal=_text(values.get("25")) or None,
+        volume_change=_int(values.get("26")),
         raw=values,
     )
 

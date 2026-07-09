@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from brokers.kiwoom.exceptions import KiwoomRealtimeError
 
 _CHANNEL_TO_TR_ID = {
+    "industry_index": "0J",
     "trades": "0B",
     "orderbook": "0D",
 }

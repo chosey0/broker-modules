@@ -187,6 +187,13 @@ uv run python stream.py
 
 `Ctrl-C`로 종료합니다. 토큰/approval key 발급, 재접속 + 자동 재구독, PINGPONG 에코는 모두 세션이 알아서 처리하므로 위 코드가 전부입니다.
 
+실시간 이벤트 모델은 수신 시각(`received_at`)과 단일 WebSocket 세션 안에서
+SDK가 부여하는 단조 증가 수신 순번(`received_seq`)을 함께 보존합니다.
+동일한 `received_at` 이벤트를 저장하거나 재생할 때는
+`(received_at, received_seq)`로 정렬해야 로컬 수신 순서가 보존됩니다.
+이 값은 클라이언트 수신 순서용 tie-breaker이며, 재접속 전후나 여러 수집기
+간 전역 발생 순서를 의미하지 않습니다.
+
 ### 알아둘 점
 
 | 항목 | 내용 |

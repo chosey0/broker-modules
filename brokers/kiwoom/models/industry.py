@@ -38,3 +38,29 @@ class IndustryIndex:
     limit_down_count: int | None = None
     listed_count: int | None = None
     raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RealtimeIndustryIndex:
+    """One Kiwoom realtime ``0J`` industry index event."""
+
+    market: str
+    industry_code: str
+    tr_id: str
+    tr_key: str
+    exchange_ts: str
+    received_at: str
+    received_seq: int
+    seq: int
+    current_price: Decimal | None
+    volume: int | None
+    change: Decimal | None = None
+    change_rate: Decimal | None = None
+    total_volume: int | None = None
+    amount_million: int | None = None
+    open: Decimal | None = None
+    high: Decimal | None = None
+    low: Decimal | None = None
+    change_signal: str | None = None
+    volume_change: int | None = None
+    raw: dict[str, str] = field(default_factory=dict)

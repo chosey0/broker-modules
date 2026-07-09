@@ -30,6 +30,7 @@ from brokers.kiwoom.models import (
     IndustryIndex,
     OrderBookLevel,
     OrderBookSnapshot,
+    RealtimeIndustryIndex,
     RealtimeTick,
 )
 from brokers.kiwoom.parsers import (
@@ -58,6 +59,7 @@ __all__ = [
     "MemoryTokenCache",
     "OrderBookLevel",
     "OrderBookSnapshot",
+    "RealtimeIndustryIndex",
     "RealtimeSession",
     "RealtimeSubscription",
     "RealtimeTick",
