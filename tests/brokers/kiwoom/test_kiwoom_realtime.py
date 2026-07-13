@@ -13,6 +13,8 @@ from brokers.kiwoom import (
     RealtimeTick,
     parse_realtime_message,
 )
+from brokers.kiwoom._internal.headers import build_websocket_subscription_message
+from brokers.kiwoom.realtime.connection import KiwoomRealtimeConnection
 from brokers.kiwoom.realtime.frame import RealtimeFrameProcessor
 from brokers.kiwoom.realtime.subscription import (
     SubscriptionRegistry,
@@ -24,6 +26,8 @@ def test_subscription_for_maps_supported_realtime_channels() -> None:
     trade = subscription_for("trades", "005930")
     orderbook = subscription_for("orderbook", "005930")
     industry_index = subscription_for("industry_index", "001")
+    us_trade = subscription_for("us_trades", "NVDA", exchange="ND")
+    us_orderbook = subscription_for("us_orderbook", "NVDA", exchange="ND")
 
     assert trade.tr_id == "0B"
     assert trade.tr_key == "005930"
@@ -31,6 +35,10 @@ def test_subscription_for_maps_supported_realtime_channels() -> None:
     assert orderbook.tr_key == "005930"
     assert industry_index.tr_id == "0J"
     assert industry_index.tr_key == "001"
+    assert us_trade.tr_id == "FE"
+    assert us_trade.exchange == "ND"
+    assert us_orderbook.tr_id == "FT"
+    assert us_orderbook.exchange == "ND"
 
 
 def test_subscription_for_rejects_invalid_inputs() -> None:
@@ -39,6 +47,27 @@ def test_subscription_for_rejects_invalid_inputs() -> None:
 
     with pytest.raises(KiwoomRealtimeError, match="symbol must not be empty"):
         subscription_for("trades", " ")
+
+    with pytest.raises(KiwoomRealtimeError, match="exchange must not be empty"):
+        subscription_for("us_trades", "NVDA")
+
+
+def test_us_realtime_uses_us_websocket_and_exchange_subscription_item() -> None:
+    connection = KiwoomRealtimeConnection(
+        environment="mock",
+        access_token="token",
+        market="US",
+    )
+    message = build_websocket_subscription_message(
+        tr_id="FE",
+        tr_key="NVDA",
+        exchange="ND",
+    )
+
+    assert connection.url == "wss://mockapi.kiwoom.com:10000/api/us/websocket"
+    assert message["data"] == [
+        {"item": [{"jmcode": "NVDA", "stex_tp": "ND"}], "type": ["FE"]}
+    ]
 
 
 def test_parse_stock_trade_realtime_frame() -> None:
@@ -142,6 +171,75 @@ def test_parse_stock_orderbook_realtime_frame() -> None:
     assert event.total_bid_change == 70
     assert event.expected_price == Decimal("71950")
     assert event.expected_volume == 120
+
+
+def test_parse_us_trade_and_orderbook_realtime_frames() -> None:
+    trade, orderbook = parse_realtime_message(
+        {
+            "trnm": "REAL",
+            "data": [
+                {
+                    "type": "FE",
+                    "item": "NVDA",
+                    "stexTp": "ND",
+                    "values": {
+                        "10": "+198.5000",
+                        "11": "+3.5300",
+                        "12": "+1.81",
+                        "13": "166476665",
+                        "14": "36384473.963000",
+                        "15": "+15",
+                        "16": "+197.2400",
+                        "17": "+200.6300",
+                        "18": "+195.1100",
+                        "20": "215300",
+                        "27": "+198.5400",
+                        "28": "+198.4800",
+                        "51020": "215300",
+                    },
+                },
+                {
+                    "type": "FT",
+                    "item": "NVDA",
+                    "stexTp": "ND",
+                    "values": {
+                        "21": "215300",
+                        "121": "590",
+                        "125": "437",
+                        **{
+                            str(offset + level): str(base + level)
+                            for offset, base in (
+                                (40, 198),
+                                (50, 197),
+                                (60, 100),
+                                (70, 200),
+                                (80, 0),
+                                (90, 0),
+                            )
+                            for level in range(1, 11)
+                        },
+                    },
+                },
+            ],
+        },
+        received_at="2026-07-09T00:00:00+00:00",
+    )
+
+    assert isinstance(trade, RealtimeTick)
+    assert trade.market == "ND"
+    assert trade.tr_id == "FE"
+    assert trade.exchange_ts == "21:53:00"
+    assert trade.price == Decimal("198.5000")
+    assert trade.volume == 15
+    assert trade.side == "buy"
+    assert isinstance(orderbook, OrderBookSnapshot)
+    assert orderbook.market == "ND"
+    assert orderbook.tr_id == "FT"
+    assert orderbook.exchange_ts == "21:53:00"
+    assert orderbook.asks[0].ask_price == Decimal("199")
+    assert orderbook.asks[0].bid_price == Decimal("198")
+    assert orderbook.total_ask_volume == 590
+    assert orderbook.total_bid_volume == 437
 
 
 def test_parse_industry_index_realtime_frame() -> None:
@@ -284,6 +382,23 @@ def test_session_subscribe_industry_index_registers_0j_subscription() -> None:
     assert subscription.channel == "industry_index"
     assert subscription.tr_id == "0J"
     assert session._subscriptions.all() == (subscription,)
+
+
+def test_session_subscribe_us_realtime_registers_fe_and_ft_subscriptions() -> None:
+    session = RealtimeSession(_Client(), market="US")
+
+    trade = asyncio.run(session.subscribe_us_trades("NVDA", exchange="ND"))
+    orderbook = asyncio.run(session.subscribe_us_orderbook("NVDA", exchange="ND"))
+
+    assert (trade.tr_id, orderbook.tr_id) == ("FE", "FT")
+    assert all(subscription.exchange == "ND" for subscription in session._subscriptions.all())
+
+
+def test_session_rejects_us_subscription_on_domestic_websocket() -> None:
+    session = RealtimeSession(_Client())
+
+    with pytest.raises(KiwoomRealtimeError, match=r"session\(market='US'\)"):
+        asyncio.run(session.subscribe_us_trades("NVDA", exchange="ND"))
 
 
 class _Client:

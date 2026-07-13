@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from brokers.kiwoom.exceptions import KiwoomRealtimeError
 from brokers.kiwoom.realtime.connection import KiwoomRealtimeConnection
 from brokers.kiwoom.realtime.frame import RealtimeEvent, RealtimeFrameProcessor
 from brokers.kiwoom.realtime.subscription import (
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
 @dataclass
 class RealtimeSession:
     client: "KiwoomClient"
+    market: str = "KRX"
     reconnect: bool = True
     reconnect_delay_seconds: float = 1.0
     _connection: KiwoomRealtimeConnection | None = field(
@@ -50,6 +52,7 @@ class RealtimeSession:
         self._connection = KiwoomRealtimeConnection(
             environment=self.client.environment,
             access_token=token,
+            market=self.market,
         )
         await self._connection.connect()
         for subscription in self._subscriptions.all():
@@ -77,6 +80,26 @@ class RealtimeSession:
     ) -> RealtimeSubscription:
         return await self._subscribe(subscription_for("orderbook", symbol, market=market))
 
+    async def subscribe_us_trades(
+        self,
+        symbol: str,
+        *,
+        exchange: str,
+    ) -> RealtimeSubscription:
+        return await self._subscribe(
+            subscription_for("us_trades", symbol, market="US", exchange=exchange)
+        )
+
+    async def subscribe_us_orderbook(
+        self,
+        symbol: str,
+        *,
+        exchange: str,
+    ) -> RealtimeSubscription:
+        return await self._subscribe(
+            subscription_for("us_orderbook", symbol, market="US", exchange=exchange)
+        )
+
     async def subscribe_industry_index(
         self,
         industry_code: str,
@@ -93,6 +116,7 @@ class RealtimeSession:
         *,
         channel: str = "trades",
         market: str = "KRX",
+        exchange: str | None = None,
     ) -> RealtimeSubscription:
         if isinstance(subscription_or_symbol, RealtimeSubscription):
             subscription = subscription_or_symbol
@@ -101,6 +125,7 @@ class RealtimeSession:
                 channel,
                 subscription_or_symbol,
                 market=market,
+                exchange=exchange,
             )
         if self._connection is not None:
             await self._connection.send_subscription(subscription, trnm="REMOVE")
@@ -132,6 +157,10 @@ class RealtimeSession:
         self,
         subscription: RealtimeSubscription,
     ) -> RealtimeSubscription:
+        if (subscription.exchange is not None) != (self.market == "US"):
+            raise KiwoomRealtimeError(
+                "US realtime subscriptions require session(market='US')"
+            )
         self._subscriptions.add(subscription)
         if self._connection is not None:
             await self._connection.send_subscription(subscription)

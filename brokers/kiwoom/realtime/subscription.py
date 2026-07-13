@@ -8,6 +8,8 @@ _CHANNEL_TO_TR_ID = {
     "industry_index": "0J",
     "trades": "0B",
     "orderbook": "0D",
+    "us_trades": "FE",
+    "us_orderbook": "FT",
 }
 
 
@@ -18,6 +20,7 @@ class RealtimeSubscription:
     symbol: str
     tr_id: str
     tr_key: str
+    exchange: str | None = None
 
 
 def subscription_for(
@@ -25,6 +28,7 @@ def subscription_for(
     symbol: str,
     *,
     market: str = "KRX",
+    exchange: str | None = None,
 ) -> RealtimeSubscription:
     try:
         tr_id = _CHANNEL_TO_TR_ID[channel]
@@ -34,12 +38,16 @@ def subscription_for(
     normalized_symbol = symbol.strip()
     if not normalized_symbol:
         raise KiwoomRealtimeError("symbol must not be empty")
+    normalized_exchange = (exchange or "").strip().upper()
+    if tr_id in {"FE", "FT"} and not normalized_exchange:
+        raise KiwoomRealtimeError("exchange must not be empty for US realtime channels")
     return RealtimeSubscription(
         channel=channel,
         market=market,
         symbol=normalized_symbol,
         tr_id=tr_id,
         tr_key=normalized_symbol,
+        exchange=normalized_exchange or None,
     )
 
 

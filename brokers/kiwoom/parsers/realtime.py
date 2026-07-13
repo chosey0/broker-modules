@@ -36,22 +36,24 @@ def parse_realtime_message(
         tr_id = _text(row.get("type"))
         values = _values(row.get("values"))
         seq = received_seq_start + offset
-        if tr_id == "0B":
+        if tr_id in {"0B", "FE"}:
             events.append(
                 _parse_trade(
                     row=row,
                     values=values,
-                    market=market,
+                    tr_id=tr_id,
+                    market=_us_market(row) if tr_id == "FE" else market,
                     received_at=timestamp,
                     received_seq=seq,
                 )
             )
-        elif tr_id == "0D":
+        elif tr_id in {"0D", "FT"}:
             events.append(
                 _parse_orderbook(
                     row=row,
                     values=values,
-                    market=market,
+                    tr_id=tr_id,
+                    market=_us_market(row) if tr_id == "FT" else market,
                     received_at=timestamp,
                     received_seq=seq,
                 )
@@ -73,6 +75,7 @@ def _parse_trade(
     *,
     row: dict[str, Any],
     values: dict[str, str],
+    tr_id: str,
     market: str,
     received_at: str,
     received_seq: int,
@@ -81,9 +84,9 @@ def _parse_trade(
     return RealtimeTick(
         market=market,
         symbol=_text(row.get("item")),
-        tr_id="0B",
+        tr_id=tr_id,
         tr_key=_text(row.get("item")),
-        exchange_ts=_time_value(values.get("20")),
+        exchange_ts=_time_value(values.get("51020") or values.get("20")),
         received_at=received_at,
         received_seq=received_seq,
         seq=received_seq,
@@ -107,6 +110,7 @@ def _parse_orderbook(
     *,
     row: dict[str, Any],
     values: dict[str, str],
+    tr_id: str,
     market: str,
     received_at: str,
     received_seq: int,
@@ -127,7 +131,7 @@ def _parse_orderbook(
     return OrderBookSnapshot(
         market=market,
         symbol=symbol,
-        tr_id="0D",
+        tr_id=tr_id,
         tr_key=symbol,
         exchange_ts=_time_value(values.get("21")),
         received_at=received_at,
@@ -200,6 +204,10 @@ def _text(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _us_market(row: dict[str, Any]) -> str:
+    return _text(row.get("stexTp")) or "US"
 
 
 def _time_value(value: str | None) -> str:

@@ -33,11 +33,15 @@ def build_websocket_subscription_message(
     trnm: str = "REG",
     group_no: str = "1",
     refresh: bool = True,
+    exchange: str | None = None,
 ) -> dict[str, object]:
+    item: list[object] = [tr_key]
+    if exchange:
+        item = [{"jmcode": tr_key, "stex_tp": exchange}]
     body: dict[str, object] = {
         "trnm": trnm,
         "grp_no": group_no,
-        "data": [{"item": [tr_key], "type": [tr_id]}],
+        "data": [{"item": item, "type": [tr_id]}],
     }
     if trnm == "REG":
         body["refresh"] = "1" if refresh else "0"

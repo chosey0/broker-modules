@@ -17,7 +17,7 @@
 
 `brokers.kiwoom`은 키움증권 OpenAPI REST/WebSocket API를 감싸는
 순수 파이썬 SDK입니다. 현재 구현 범위는 OAuth 접근토큰 발급/폐기,
-국내주식 차트 조회, 실시간 주식체결/주식호가잔량 수신입니다.
+국내주식 차트 조회, 국내/미국주식 실시간 체결·호가 수신입니다.
 
 이 패키지는 broker SDK 계층입니다. DuckDB/SQLite 저장, CLI, 설정 파일,
 대시보드, canonical domain model 변환은 담당하지 않습니다. 그런 작업은
@@ -31,6 +31,7 @@
 - 모의투자 도메인: `https://mockapi.kiwoom.com`
 - 개발 도메인: `https://apidev.kiwoom.com`
 - 실시간 WebSocket URI: `/api/dostk/websocket`
+- 미국주식 실시간 WebSocket URI: `/api/us/websocket`
 
 ---
 
@@ -48,6 +49,8 @@
 | 차트 | 주식 년봉차트 조회 | `ka10094` |
 | 실시간시세 | 주식체결 | `0B` |
 | 실시간시세 | 주식호가잔량 | `0D` |
+| 실시간시세 | 미국주식 실시간 체결가 | `FE` |
+| 실시간시세 | 미국주식 10호가 | `FT` |
 
 지원하지 않는 범위:
 
@@ -188,6 +191,14 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+미국주식은 별도 WebSocket 경로를 사용하며 거래소 코드를 함께 지정합니다.
+
+```python
+async with client.realtime.session(market="US") as ws:
+    await ws.subscribe_us_trades("NVDA", exchange="ND")
+    await ws.subscribe_us_orderbook("NVDA", exchange="ND")
+```
+
 지원 채널:
 
 | 메서드 | API ID | 반환 모델 |
@@ -195,6 +206,8 @@ asyncio.run(main())
 | `subscribe_trades("005930")` | `0B` | `RealtimeTick` |
 | `subscribe_orderbook("005930")` | `0D` | `OrderBookSnapshot` |
 | `subscribe_industry_index("001")` | `0J` | `RealtimeIndustryIndex` |
+| `subscribe_us_trades("NVDA", exchange="ND")` | `FE` | `RealtimeTick` |
+| `subscribe_us_orderbook("NVDA", exchange="ND")` | `FT` | `OrderBookSnapshot` |
 
 WebSocket 로그인은 REST 접근토큰으로 수행합니다. 서버가 `PING` 프레임을
 보내면 SDK가 동일 payload를 즉시 echo합니다. 실시간 이벤트 모델은

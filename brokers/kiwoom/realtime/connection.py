@@ -13,7 +13,10 @@ from brokers.kiwoom.exceptions import KiwoomRealtimeError
 from brokers.kiwoom.realtime.subscription import RealtimeSubscription
 from brokers.kiwoom.types import Environment
 
-_WEBSOCKET_PATH = "/api/dostk/websocket"
+_WEBSOCKET_PATHS = {
+    "KRX": "/api/dostk/websocket",
+    "US": "/api/us/websocket",
+}
 
 
 class KiwoomRealtimeConnection:
@@ -22,12 +25,18 @@ class KiwoomRealtimeConnection:
         *,
         environment: Environment,
         access_token: str,
+        market: str = "KRX",
         connect_timeout_seconds: float = 10.0,
     ) -> None:
         self.environment = environment
         self.access_token = access_token
         self.connect_timeout_seconds = connect_timeout_seconds
-        self.url = f"{websocket_url(environment)}{_WEBSOCKET_PATH}"
+        try:
+            path = _WEBSOCKET_PATHS[market]
+        except KeyError as exc:
+            allowed = ", ".join(sorted(_WEBSOCKET_PATHS))
+            raise KiwoomRealtimeError(f"market must be one of: {allowed}") from exc
+        self.url = f"{websocket_url(environment)}{path}"
         self._socket: Any | None = None
 
     @property
@@ -85,6 +94,7 @@ class KiwoomRealtimeConnection:
                 trnm=trnm,
                 group_no=group_no,
                 refresh=refresh,
+                exchange=subscription.exchange,
             )
         )
 

@@ -19,11 +19,13 @@ class _RealtimeNamespace:
     def session(
         self,
         *,
+        market: str = "KRX",
         reconnect: bool = True,
         reconnect_delay_seconds: float = 1.0,
     ) -> RealtimeSession:
         return RealtimeSession(
             self._client,
+            market=market,
             reconnect=reconnect,
             reconnect_delay_seconds=reconnect_delay_seconds,
         )
