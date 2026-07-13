@@ -15,6 +15,7 @@ from brokers.kiwoom.types import Environment
 
 if TYPE_CHECKING:
     from brokers.kiwoom.domestic import _DomesticNamespace
+    from brokers.kiwoom.overseas import _OverseasNamespace
     from brokers.kiwoom.realtime import _RealtimeNamespace
 
 
@@ -36,6 +37,7 @@ class KiwoomClient:
     timeout_seconds: float = 30.0
 
     domestic: "_DomesticNamespace" = field(init=False, repr=False)
+    overseas: "_OverseasNamespace" = field(init=False, repr=False)
     realtime: "_RealtimeNamespace" = field(init=False, repr=False)
 
     _owns_client: bool = field(default=False, init=False, repr=False)
@@ -44,6 +46,7 @@ class KiwoomClient:
 
     def __post_init__(self) -> None:
         from brokers.kiwoom.domestic import _DomesticNamespace
+        from brokers.kiwoom.overseas import _OverseasNamespace
         from brokers.kiwoom.realtime import _RealtimeNamespace
 
         self._token_provider = TokenProvider(
@@ -53,6 +56,7 @@ class KiwoomClient:
             http_client_factory=self._require_http_client,
         )
         self.domestic = _DomesticNamespace(self)
+        self.overseas = _OverseasNamespace(self)
         self.realtime = _RealtimeNamespace(self)
 
     @property

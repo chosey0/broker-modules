@@ -19,6 +19,7 @@ _CHART_ROW_KEYS: dict[str, str] = {
     "weekly": "stk_stk_pole_chart_qry",
     "monthly": "stk_mth_pole_chart_qry",
     "yearly": "stk_yr_pole_chart_qry",
+    "overseas": "result_list",
 }
 
 
@@ -52,8 +53,8 @@ def parse_chart_bar(
         high=required_price(row, "high_pric"),
         low=required_price(row, "low_pric"),
         close=required_price(row, "cur_prc"),
-        volume=required_abs_int(row, "trde_qty"),
-        amount=optional_decimal(row, "trde_prica"),
+        volume=required_abs_int(row, "trde_qty", "acc_trde_qty"),
+        amount=optional_decimal(row, "trde_prica", "acc_trde_prica"),
         change=optional_decimal(row, "pred_pre"),
         change_signal=str_or_none(row.get("pred_pre_sig")),
         turnover_rate=optional_decimal(row, "trde_tern_rt"),

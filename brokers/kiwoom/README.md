@@ -17,7 +17,7 @@
 
 `brokers.kiwoom`은 키움증권 OpenAPI REST/WebSocket API를 감싸는
 순수 파이썬 SDK입니다. 현재 구현 범위는 OAuth 접근토큰 발급/폐기,
-국내주식 차트 조회, 국내/미국주식 실시간 체결·호가 수신입니다.
+국내/미국주식 차트 조회, 국내/미국주식 실시간 체결·호가 수신입니다.
 
 이 패키지는 broker SDK 계층입니다. DuckDB/SQLite 저장, CLI, 설정 파일,
 대시보드, canonical domain model 변환은 담당하지 않습니다. 그런 작업은
@@ -47,6 +47,12 @@
 | 차트 | 주식 주봉차트 조회 | `ka10082` |
 | 차트 | 주식 월봉차트 조회 | `ka10083` |
 | 차트 | 주식 년봉차트 조회 | `ka10094` |
+| 차트 | 미국주식 틱 차트 조회 | `usa06010` |
+| 차트 | 미국주식 분 차트 조회 | `usa06011` |
+| 차트 | 미국주식 일 차트 조회 | `usa06012` |
+| 차트 | 미국주식 주 차트 조회 | `usa06013` |
+| 차트 | 미국주식 월 차트 조회 | `usa06014` |
+| 차트 | 미국주식 년 차트 조회 | `usa06015` |
 | 실시간시세 | 주식체결 | `0B` |
 | 실시간시세 | 주식호가잔량 | `0D` |
 | 실시간시세 | 미국주식 실시간 체결가 | `FE` |
@@ -67,11 +73,12 @@ kiwoom/
 ├── client.py        KiwoomClient facade — async context manager, request()
 ├── config.py        Credentials(from_env), 환경별 REST/WebSocket URL
 ├── auth/            접근토큰 발급/폐기, TokenProvider, TokenCache
-├── endpoints/       EndpointSpec 레지스트리 — domestic/chart
+├── endpoints/       EndpointSpec 레지스트리 — domestic/overseas chart
 ├── parsers/         REST/WebSocket 페이로드 → SDK 모델 변환
 ├── models/          frozen dataclass 응답 모델(raw 페이로드 보존)
 ├── domestic/        국내주식 고수준 REST API(chart)
-├── realtime/        국내주식 실시간 WebSocket 세션/구독
+├── overseas/        미국주식 고수준 REST API(chart)
+├── realtime/        국내·미국주식 실시간 WebSocket 세션/구독
 └── _internal/       HTTP transport, Kiwoom 헤더 빌더
 ```
 
@@ -138,7 +145,24 @@ await client.domestic.chart.monthly("005930", base_date="2026-06-17")
 await client.domestic.chart.yearly("005930", base_date="2026-06-17")
 ```
 
-지원 범위:
+### US Stock Chart API
+
+```python
+await client.overseas.chart.tick("NVDA", exchange="ND", tick_scope=1)
+await client.overseas.chart.minute(
+    "NVDA", exchange="ND", start_date="2026-06-24", interval_minutes=1
+)
+await client.overseas.chart.daily("NVDA", exchange="ND", start_date="2026-01-01")
+await client.overseas.chart.weekly("NVDA", exchange="ND", start_date="2025-01-01")
+await client.overseas.chart.monthly("NVDA", exchange="ND", start_date="2024-01-01")
+await client.overseas.chart.yearly("NVDA", exchange="ND", start_date="2020-01-01")
+```
+
+`exchange`는 `NA`(AMEX), `ND`(NASDAQ), `NY`(NYSE) 중 하나입니다.
+기본값은 수정주가 적용, 환율 미적용이며 `adjusted=False` 및
+`apply_exchange_rate=True`로 변경할 수 있습니다.
+
+국내주식 차트 지원 범위:
 
 - `tick_scope`: `1`, `3`, `5`, `10`, `30`
 - `interval_minutes`: `1`, `3`, `5`, `10`, `15`, `30`, `45`, `60`
