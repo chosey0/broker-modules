@@ -33,7 +33,7 @@
 | | 영역 | 상태 | 설명 |
 |---|------|:----:|------|
 | **[KIS]** | [KIS SDK](./brokers/kis/README.md) | 구현 중 | 한국투자증권 국내·해외 REST 조회, 해외·국내 WebSocket 실시간 시세, 인증, 심볼 마스터 |
-| **[Kiwoom]** | [Kiwoom SDK](./brokers/kiwoom/README.md) | 구현 중 | 키움증권 OAuth, 국내주식 차트, 업종 코드·지수, 국내 실시간 체결·호가·업종지수 WebSocket |
+| **[Kiwoom]** | [Kiwoom SDK](./brokers/kiwoom/README.md) | 구현 중 | 키움증권 OAuth, 국내주식 차트, 업종 코드·지수, 국내 실시간 체결·호가·업종지수와 미국주식 체결가·10호가 WebSocket |
 | **[Toss]** | [Toss SDK](./brokers/toss/README.md) | 구현됨 | 토스증권 현재가·캔들·종목정보와 국내·해외 장 운영 정보 조회 |
 | **[KRX]** | [KRX SDK](./brokers/krx/README.md) | 초기 구현 | KRX Data Marketplace 지수 일별 가격 조회 |
 
@@ -45,7 +45,7 @@
 |---|------|------|
 | **[인증]** | 브로커별 토큰 발급·캐시 | KIS, Kiwoom, Toss 인증 흐름과 메모리 토큰 캐시 |
 | **[REST]** | 시세·차트 조회 | 브로커별 엔드포인트 정의와 typed client facade |
-| **[Realtime]** | WebSocket 세션 | KIS, Kiwoom 실시간 체결·호가 구독과 프레임 파싱 |
+| **[Realtime]** | WebSocket 세션 | KIS 및 Kiwoom 국내·미국주식 실시간 체결·호가 구독과 프레임 파싱 |
 | **[Models]** | broker-native dataclass | SDK 응답을 저장소나 canonical 모델에 묶지 않는 순수 모델 |
 | **[Parsers]** | 응답 정규화 | 문자열 숫자, 날짜, 시간, continuation 응답 파싱 |
 | **[Isolation]** | FinLabs 비의존 | DuckDB, CLI, adapters, orchestration, domain 계층을 import하지 않음 |
@@ -122,7 +122,7 @@ brokers.* -> finlabs_cli / dashboard / research
 broker-modules/
 ├── brokers/
 │   ├── kis/          한국투자증권 국내·해외주식 REST/WebSocket SDK
-│   ├── kiwoom/       키움증권 국내주식 차트·업종·실시간 SDK
+│   ├── kiwoom/       키움증권 국내 차트·업종 및 국내·미국 실시간 SDK
 │   ├── toss/         토스증권 국내·미국주식 시세·장운영 SDK
 │   └── krx/          KRX 지수 데이터 SDK
 ├── tests/
